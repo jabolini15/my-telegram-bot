@@ -1,9 +1,14 @@
 import os
+import asyncio
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import nest_asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from groq import Groq
+
+# اعمال پچ برای جلوگیری از کرش حلقه async در Render
+nest_asyncio.apply()
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
@@ -22,7 +27,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = chat_completion.choices[0].message.content
         await update.message.reply_text(reply)
     except Exception as e:
-        await update.message.reply_text(f"خطایی رخ داد: {str(e)}")
+        await update.message.reply_text(f"خطا در دریافت پاسخ: {str(e)}")
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -37,6 +42,9 @@ def run_health_check_server():
 
 if __name__ == "__main__":
     threading.Thread(target=run_health_check_server, daemon=True).start()
+    
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    app.run_polling()
+    
+    print("Bot is starting...")
+    app.run_polling(drop_pending_updates=True)
