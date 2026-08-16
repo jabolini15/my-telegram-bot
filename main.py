@@ -16,11 +16,12 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
-# شناسه مدل‌های کاملاً تست‌شده و موجود در گوگل API
+# مدل‌های فعال و رسمی
 MODELS_TO_TRY = [
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-pro-002"
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash"
 ]
 
 def get_response_from_gemini(user_text: str) -> str:
@@ -29,8 +30,7 @@ def get_response_from_gemini(user_text: str) -> str:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
         payload = {
             "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-            "contents": [{"parts": [{"text": user_text}]}],
-            "generationConfig": {"temperature": 0.7}
+            "contents": [{"parts": [{"text": user_text}]}]
         }
         try:
             res = requests.post(url, json=payload, timeout=25)
@@ -55,7 +55,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply = get_response_from_gemini(user_text)
     await update.message.reply_text(reply)
 
-# سرور سبک برای UptimeRobot
+# سرور ساختگی سبک جهت بیدار نگه داشتن Render توسط UptimeRobot
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
