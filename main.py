@@ -58,12 +58,12 @@ def main():
 
     if RENDER_EXTERNAL_URL:
         print(f"Starting Webhook on port {PORT}...")
+        # مسیر وب‌هوک به عنوان مسیر ریشه (/) تنظیم می‌شود تا UptimeRobot هم پاسخ 200 دریافت کند
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}",
-            health_check_path="/",
+            url_path="",
+            webhook_url=f"{RENDER_EXTERNAL_URL}/",
             drop_pending_updates=True
         )
     else:
