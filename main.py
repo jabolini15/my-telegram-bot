@@ -8,16 +8,17 @@ from openai import OpenAI
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
+# دریافت نام مدل از متغیر محیطی (با مقدار پیش‌فرض مطمئن)
+MODEL_NAME = os.environ.get("MODEL_NAME", "meta-llama/llama-3.3-70b-instruct:free")
 
-# اتصال به OpenRouter
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_KEY,
 )
 
 SYSTEM_PROMPT = (
-    "تو یک دستیار هوشمند، فوق‌العاده باهوش و مسلط به زبان فارسی هستی. "
-    "پاسخ‌هایت باید کاملاً روان، منطقی، جذاب و بدون ترجمه ماشینی باشند."
+    "تو یک دستیار هوشمند، بسیار باهوش و مسلط به زبان فارسی هستی. "
+    "پاسخ‌هایت باید کاملاً روان، منطقی، دقیق و بدون ترجمه ماشینی باشند."
 )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -26,7 +27,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     try:
         response = client.chat.completions.create(
-            model="nousresearch/hermes-3-llama-3.1-8b",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_text}
@@ -55,7 +56,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Hermes 3 Bot is running...")
+        print(f"Bot is running using model: {MODEL_NAME}")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
