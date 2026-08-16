@@ -26,7 +26,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     try:
         response = client.chat.completions.create(
-            model="nousresearch/hermes-3-llama-3.1-405b:free",
+            model="nousresearch/hermes-3-llama-3.1-8b:free",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_text}
@@ -55,7 +55,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Hermes Bot is running...")
+        print("Hermes 3 Bot is running...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
