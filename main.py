@@ -1,11 +1,11 @@
 import os
 import requests
+import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
 SYSTEM_PROMPT = (
     "تو یک دستیار هوشمند، بسیار باهوش، رفیق و صمیمی هستی. "
@@ -26,9 +26,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "parts": [{"text": SYSTEM_PROMPT}]
         },
         "contents": [
-            {
-                "parts": [{"text": user_text}]
-            }
+            {"parts": [{"text": user_text}]}
         ],
         "generationConfig": {
             "temperature": 0.7
@@ -43,29 +41,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply = data["candidates"][0]["content"]["parts"][0]["text"]
             await update.message.reply_text(reply)
         else:
-            error_msg = data.get("error", {}).get("message", "خطای ناشناخته")
+            error_msg = data.get("error", {}).get("message", "خطای غیرمنتظره در API")
             await update.message.reply_text(f"خطا در API جمینی: {error_msg}")
             
     except Exception as e:
         await update.message.reply_text(f"خطا در ارتباط: {str(e)}")
 
-def main():
-    port = int(os.environ.get("PORT", 8080))
+async def main():
+    if not BOT_TOKEN or not GEMINI_KEY:
+        print("خطا: متغیرهای محیطی TELEGRAM_BOT_TOKEN یا GEMINI_API_KEY تنظیم نشده‌اند!")
+        return
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-
-    if RENDER_EXTERNAL_URL:
-        print(f"Starting bot on port {port} via Webhook...")
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=BOT_TOKEN,
-            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}",
-            drop_pending_updates=True
-        )
-    else:
-        print("Starting bot via Polling...")
-        app.run_polling(drop_pending_updates=True)
+    
+    # حذف وب‌هوک‌های قبلی برای جلوگیری از تداخل و ارور
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    
+    print("ربات با موفقیت روشن شد و آماده پاسخگویی است...")
+    
+    async with app:
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
