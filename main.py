@@ -9,7 +9,7 @@ from google import genai
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# راه اندازی کلاینت جدید جمینی
+# راه‌اندازی کلاینت جمینی
 client = genai.Client(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
@@ -25,7 +25,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=user_text,
             config={
                 "system_instruction": SYSTEM_PROMPT,
