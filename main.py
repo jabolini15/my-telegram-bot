@@ -15,35 +15,41 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
+# مدل‌های فعال و رسمی گوگل بر اساس آخرین آپدیت
+ACTIVE_MODELS = [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-1.5-flash"
+]
+
+def get_response_from_gemini(user_text: str) -> str:
+    for model_name in ACTIVE_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
+        payload = {
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"parts": [{"text": user_text}]}],
+            "generationConfig": {"temperature": 0.7}
+        }
+        try:
+            res = requests.post(url, json=payload, timeout=25)
+            data = res.json()
+            if res.status_code == 200 and "candidates" in data:
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+            
+            print(f"Model {model_name} returned status {res.status_code}: {data.get('error', {}).get('message')}")
+        except Exception as e:
+            print(f"Error requesting {model_name}: {e}")
+
+    return "⚠️ متأسفانه در حال حاضر پاسخی دریافت نشد. لطفاً API Key خود را بررسی کنید."
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
     user_text = update.message.text
-    # استفاده از مدل جدید و رسمی gemini-2.5-flash
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
-    
-    payload = {
-        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-        "contents": [{"parts": [{"text": user_text}]}],
-        "generationConfig": {"temperature": 0.7}
-    }
-    
-    try:
-        res = requests.post(url, json=payload, timeout=25)
-        data = res.json()
-        
-        if res.status_code == 200 and "candidates" in data:
-            reply = data["candidates"][0]["content"]["parts"][0]["text"]
-            await update.message.reply_text(reply)
-        else:
-            err_msg = data.get("error", {}).get("message", "خطای غیرمنتظره")
-            print(f"Gemini API Error: {err_msg}")
-            await update.message.reply_text(f"⚠️ خطا: {err_msg}")
-            
-    except Exception as e:
-        print(f"Network Error: {e}")
-        await update.message.reply_text("⚠️ خطای شبکه در ارتباط با سرورهای گوگل.")
+    reply = get_response_from_gemini(user_text)
+    await update.message.reply_text(reply)
 
 def main():
     if not BOT_TOKEN or not GEMINI_KEY:
