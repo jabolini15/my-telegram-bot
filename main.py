@@ -4,13 +4,13 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-from google import genai
+import google.generativeai as genai
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# راه‌اندازی کلاینت جمینی
-client = genai.Client(api_key=GEMINI_KEY)
+# پیکربندی API جمینی
+genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
     "تو یک دستیار هوشمند، بسیار باهوش، رفیق و صمیمی هستی. "
@@ -19,18 +19,22 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
+# ساخت مدل با پرامپت سیستمی
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_PROMPT
+)
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
     user_text = update.message.text
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=user_text,
-            config={
-                "system_instruction": SYSTEM_PROMPT,
-                "temperature": 0.7,
-            }
+        response = model.generate_content(
+            user_text,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+            )
         )
         reply = response.text
         await update.message.reply_text(reply)
@@ -55,7 +59,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Gemini Bot is running perfectly...")
+        print("Gemini Bot is running perfectly with gemini-1.5-flash...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
