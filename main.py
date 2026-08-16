@@ -15,7 +15,6 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
-# مدل‌های فعال و رسمی گوگل بر اساس آخرین آپدیت
 ACTIVE_MODELS = [
     "gemini-3.7-flash",
     "gemini-3.6-flash",
@@ -61,11 +60,14 @@ def main():
 
     if RENDER_EXTERNAL_URL:
         print(f"Starting Webhook on port {PORT}...")
+        
+        # اجرای وب‌هوک تلگرام
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
             url_path=BOT_TOKEN,
-            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}",
+            webhook_url=webhook_url,
             drop_pending_updates=True
         )
     else:
