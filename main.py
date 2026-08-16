@@ -9,7 +9,7 @@ from openai import OpenAI
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-# اتصال به OpenRouter برای استفاده از مدل Hermes
+# اتصال به OpenRouter
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_KEY,
@@ -26,7 +26,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     try:
         response = client.chat.completions.create(
-            model="nousresearch/hermes-3-llama-3.1-8b:free",
+            model="nousresearch/hermes-3-llama-3.1-8b",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_text}
