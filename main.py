@@ -1,5 +1,7 @@
 import os
 import requests
+import asyncio
+from aiohttp import web
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
@@ -16,10 +18,8 @@ SYSTEM_PROMPT = (
 )
 
 ACTIVE_MODELS = [
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-1.5-flash"
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
 ]
 
 def get_response_from_gemini(user_text: str) -> str:
@@ -50,29 +50,46 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply = get_response_from_gemini(user_text)
     await update.message.reply_text(reply)
 
-def main():
+# هندر پاسخ برای UptimeRobot روی آدرس اصلی
+async def handle_ping(request):
+    return web.Response(text="OK", status=200)
+
+async def main():
     if not BOT_TOKEN or not GEMINI_KEY:
         print("Error: TELEGRAM_BOT_TOKEN or GEMINI_API_KEY is missing!")
         return
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    # ساخت اپلیکیشن تلگرام
+    ptb_app = ApplicationBuilder().token(BOT_TOKEN).build()
+    ptb_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    await ptb_app.initialize()
+    await ptb_app.start()
+
+    # ساخت وب‌سرور aiohttp برای پشتیبانی از وب‌هوک و UptimeRobot
+    web_app = web.Application()
+    web_app.router.add_get("/", handle_ping)
+    web_app.router.add_head("/", handle_ping)
 
     if RENDER_EXTERNAL_URL:
-        print(f"Starting Webhook on port {PORT}...")
-        
-        # اجرای وب‌هوک تلگرام
         webhook_url = f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=webhook_url,
-            drop_pending_updates=True
-        )
+        await ptb_app.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+
+        async def telegram_webhook(request):
+            data = await request.json()
+            update = Update.de_json(data, ptb_app.bot)
+            await ptb_app.process_update(update)
+            return web.Response(text="OK")
+
+        web_app.router.add_post(f"/{BOT_TOKEN}", telegram_webhook)
+        
+        runner = web.AppRunner(web_app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", PORT)
+        await site.start()
+        print(f"Web server & Webhook live on port {PORT}")
+        await asyncio.Event().wait()
     else:
-        print("Starting Polling...")
-        app.run_polling(drop_pending_updates=True)
+        await ptb_app.updater.start_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
