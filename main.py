@@ -8,8 +8,7 @@ from openai import OpenAI
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
-# دریافت نام مدل از متغیر محیطی (با مقدار پیش‌فرض مطمئن)
-MODEL_NAME = os.environ.get("MODEL_NAME", "meta-llama/llama-3.3-70b-instruct:free")
+MODEL_NAME = os.environ.get("MODEL_NAME", "openrouter/free")
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
@@ -56,7 +55,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print(f"Bot is running using model: {MODEL_NAME}")
+        print(f"Bot is running using auto-routing model: {MODEL_NAME}")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
