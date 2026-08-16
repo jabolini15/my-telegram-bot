@@ -38,7 +38,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             err_msg = data.get("error", {}).get("message", "خطای غیرمنتظره")
             print(f"Gemini API Error: {err_msg}")
-            await update.message.reply_text(f"⚠️ خطا از سمت گوگل: {err_msg}")
+            await update.message.reply_text(f"⚠️ خطا: {err_msg}")
             
     except Exception as e:
         print(f"Network Error: {e}")
