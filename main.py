@@ -11,14 +11,24 @@ GROQ_KEY = os.environ.get("GROQ_API_KEY")
 
 groq_client = Groq(api_key=GROQ_KEY)
 
+SYSTEM_PROMPT = (
+    "تو یک دستیار هوشمند، بسیار باهوش، خوش‌برخورد و مسلط به زبان فارسی هستی. "
+    "پاسخ‌هایت باید کاملاً روان، واضح، منطقی، بدون ترجمه تحت‌اللفظی و با لحنی دوستانه و محترمانه باشند. "
+    "از به کار بردن جملات نامفهوم یا گنگ خودداری کن و موضوعات را شفاف و شیوا توضیح بده."
+)
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
     user_text = update.message.text
     try:
         chat_completion = groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": user_text}],
-            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_text}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
         )
         reply = chat_completion.choices[0].message.content
         await update.message.reply_text(reply)
@@ -43,8 +53,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Bot is running...")
-        # نگه داشتن اجرای برنامه
+        print("Bot is running with enhanced system prompt...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
