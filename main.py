@@ -9,7 +9,7 @@ import google.generativeai as genai
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# پیکربندی API جمینی
+# تنظیم کلید API
 genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
@@ -19,9 +19,9 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
-# ساخت مدل با پرامپت سیستمی
+# استفاده از مدل به‌روز و استاندارد Gemini
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-2.0-flash",
     system_instruction=SYSTEM_PROMPT
 )
 
@@ -32,9 +32,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         response = model.generate_content(
             user_text,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-            )
+            generation_config={"temperature": 0.7}
         )
         reply = response.text
         await update.message.reply_text(reply)
@@ -59,7 +57,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Gemini Bot is running perfectly with gemini-1.5-flash...")
+        print("Gemini Bot is running perfectly with gemini-2.0-flash...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
