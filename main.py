@@ -2,13 +2,9 @@ import os
 import asyncio
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import nest_asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from groq import Groq
-
-# اعمال پچ برای جلوگیری از کرش حلقه async در Render
-nest_asyncio.apply()
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
@@ -40,11 +36,17 @@ def run_health_check_server():
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     server.serve_forever()
 
-if __name__ == "__main__":
-    threading.Thread(target=run_health_check_server, daemon=True).start()
-    
+async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     
-    print("Bot is starting...")
-    app.run_polling(drop_pending_updates=True)
+    async with app:
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        print("Bot is running...")
+        # نگه داشتن اجرای برنامه
+        await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    threading.Thread(target=run_health_check_server, daemon=True).start()
+    asyncio.run(main())
