@@ -1,6 +1,7 @@
 import os
-import requests
 import asyncio
+import requests
+from aiohttp import web
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
@@ -47,22 +48,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"خطا در ارتباط: {str(e)}")
 
+# هندر وب برای باز نگه داشتن پورت Render
+async def handle_health_check(request):
+    return web.Response(text="Bot is live!")
+
+async def start_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    app = web.Application()
+    app.router.add_get("/", handle_health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"Web server binding successful on port {port}")
+
 async def main():
     if not BOT_TOKEN or not GEMINI_KEY:
-        print("خطا: متغیرهای محیطی TELEGRAM_BOT_TOKEN یا GEMINI_API_KEY تنظیم نشده‌اند!")
+        print("Error: BOT_TOKEN or GEMINI_KEY is missing!")
         return
+
+    # راه اندازی همزمان سرور وب و ربات تلگرام
+    await start_web_server()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     
-    # حذف وب‌هوک‌های قبلی برای جلوگیری از تداخل و ارور
     await app.bot.delete_webhook(drop_pending_updates=True)
-    
-    print("ربات با موفقیت روشن شد و آماده پاسخگویی است...")
     
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
+        print("Bot started successfully!")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
