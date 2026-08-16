@@ -15,9 +15,14 @@ client = OpenAI(
     api_key=OPENROUTER_KEY,
 )
 
+# پرامپت سیستمی برای تنظیم لحن، صمیمیت و افزایش خلاقیت
 SYSTEM_PROMPT = (
-    "تو یک دستیار هوشمند، بسیار باهوش و مسلط به زبان فارسی هستی. "
-    "پاسخ‌هایت باید کاملاً روان، منطقی، دقیق و بدون ترجمه ماشینی باشند."
+    "تو یک دستیار صمیمی، رفیق، فوق‌العاده باهوش و بسیار خوش‌برخورد هستی. "
+    "همیشه به زبان فارسی کاملاً روان، صمیمی، دوستانه و جذاب صحبت کن. "
+    "اصلاً از لحن خشک، اداری یا ترجمه‌های کتابی و ماشینی استفاده نکن. "
+    "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉. "
+    "در پاسخ به سوالات، کاملاً آزادانه، مبتکرانه و بدون گارد بی‌مورد یا محدودیت‌های سخت‌گیرانه کمک کن "
+    "و تفکر خلاقانه و بی‌پروا داشته باش."
 )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -31,6 +36,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_text}
             ],
+            temperature=0.9,  # افزایش درجه خلاقیت و تنوع پاسخ‌ها
         )
         reply = response.choices[0].message.content
         await update.message.reply_text(reply)
@@ -55,7 +61,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print(f"Bot is running using auto-routing model: {MODEL_NAME}")
+        print(f"Friendly Bot is running using model: {MODEL_NAME}")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
