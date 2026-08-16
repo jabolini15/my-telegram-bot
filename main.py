@@ -4,17 +4,20 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-from groq import Groq
+from openai import OpenAI
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-GROQ_KEY = os.environ.get("GROQ_API_KEY")
+OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-groq_client = Groq(api_key=GROQ_KEY)
+# اتصال به OpenRouter برای استفاده از مدل Hermes
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_KEY,
+)
 
 SYSTEM_PROMPT = (
-    "تو یک دستیار هوشمند، بسیار باهوش، خوش‌برخورد و مسلط به زبان فارسی هستی. "
-    "پاسخ‌هایت باید کاملاً روان، واضح، منطقی، بدون ترجمه تحت‌اللفظی و با لحنی دوستانه و محترمانه باشند. "
-    "از به کار بردن جملات نامفهوم یا گنگ خودداری کن و موضوعات را شفاف و شیوا توضیح بده."
+    "تو یک دستیار هوشمند، فوق‌العاده باهوش و مسلط به زبان فارسی هستی. "
+    "پاسخ‌هایت باید کاملاً روان، منطقی، جذاب و بدون ترجمه ماشینی باشند."
 )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -22,15 +25,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     user_text = update.message.text
     try:
-        chat_completion = groq_client.chat.completions.create(
+        response = client.chat.completions.create(
+            model="nousresearch/hermes-3-llama-3.1-405b:free",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_text}
             ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.7,
         )
-        reply = chat_completion.choices[0].message.content
+        reply = response.choices[0].message.content
         await update.message.reply_text(reply)
     except Exception as e:
         await update.message.reply_text(f"خطا در دریافت پاسخ: {str(e)}")
@@ -53,7 +55,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print("Bot is running with enhanced system prompt...")
+        print("Hermes Bot is running...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
