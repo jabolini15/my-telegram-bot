@@ -50,7 +50,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply = get_response_from_gemini(user_text)
     await update.message.reply_text(reply)
 
-# هندر پاسخ برای UptimeRobot روی آدرس اصلی
 async def handle_ping(request):
     return web.Response(text="OK", status=200)
 
@@ -59,13 +58,11 @@ async def main():
         print("Error: TELEGRAM_BOT_TOKEN or GEMINI_API_KEY is missing!")
         return
 
-    # ساخت اپلیکیشن تلگرام
     ptb_app = ApplicationBuilder().token(BOT_TOKEN).build()
     ptb_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     await ptb_app.initialize()
     await ptb_app.start()
 
-    # ساخت وب‌سرور aiohttp برای پشتیبانی از وب‌هوک و UptimeRobot
     web_app = web.Application()
     web_app.router.add_get("/", handle_ping)
     web_app.router.add_head("/", handle_ping)
