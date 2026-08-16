@@ -1,15 +1,14 @@
 import os
 import asyncio
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 import google.generativeai as genai
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")  # آدرس رایگان سرور Render
 
-# تنظیم کلید API
+# تنظیم کلید API جمینی
 genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
@@ -19,7 +18,6 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
-# استفاده از مدل به‌روز و استاندارد Gemini
 model = genai.GenerativeModel(
     model_name="gemini-2.0-flash",
     system_instruction=SYSTEM_PROMPT
@@ -39,27 +37,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"خطا در دریافت پاسخ: {str(e)}")
 
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
-
-def run_health_check_server():
+def main():
     port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    server.serve_forever()
-
-async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    
-    async with app:
-        await app.start()
-        await app.updater.start_polling(drop_pending_updates=True)
-        print("Gemini Bot is running perfectly with gemini-2.0-flash...")
-        await asyncio.Event().wait()
+
+    # اگر آدرس Render وجود داشت از Webhook استفاده کن تا ارور Conflict کلاً حذف شود
+    if RENDER_EXTERNAL_URL:
+        print(f"Starting bot with Webhook on port {port}...")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path=BOT_TOKEN,
+            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
+        )
+    else:
+        print("Starting bot with Polling...")
+        app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    threading.Thread(target=run_health_check_server, daemon=True).start()
-    asyncio.run(main())
+    main()
