@@ -17,8 +17,9 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
+# استفاده از مدل پایدار و رسمی gemini-1.5-flash
 model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash",
+    model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT
 )
 
@@ -43,7 +44,6 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
     if RENDER_EXTERNAL_URL:
-        # اجرای استاندارد وب‌هوک بدون asyncio و بدون ارور Conflict
         print(f"Starting bot on port {port} via Webhook...")
         app.run_webhook(
             listen="0.0.0.0",
