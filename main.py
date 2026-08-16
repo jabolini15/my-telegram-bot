@@ -31,14 +31,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         res = requests.post(url, json=payload, timeout=25)
         data = res.json()
+        
         if res.status_code == 200 and "candidates" in data:
             reply = data["candidates"][0]["content"]["parts"][0]["text"]
             await update.message.reply_text(reply)
         else:
-            err_msg = data.get("error", {}).get("message", "خطای API")
-            await update.message.reply_text(f"خطا: {err_msg}")
+            err_msg = data.get("error", {}).get("message", "خطای غیرمنتظره")
+            print(f"Gemini API Error: {err_msg}")
+            await update.message.reply_text(f"⚠️ خطا از سمت گوگل: {err_msg}")
+            
     except Exception as e:
-        await update.message.reply_text(f"خطا در ارتباط: {str(e)}")
+        print(f"Network Error: {e}")
+        await update.message.reply_text("⚠️ خطای شبکه در ارتباط با سرورهای گوگل.")
 
 def main():
     if not BOT_TOKEN or not GEMINI_KEY:
@@ -48,7 +52,6 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    # اگر روی Render است، مستقیم وب‌هوک را روی پورت اختصاص یافته باز کن
     if RENDER_EXTERNAL_URL:
         print(f"Starting Webhook on port {PORT}...")
         app.run_webhook(
