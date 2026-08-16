@@ -20,7 +20,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_text = update.message.text
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+    # استفاده از مدل جدید و رسمی gemini-2.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
     
     payload = {
         "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
