@@ -1,14 +1,13 @@
 import os
-import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 import google.generativeai as genai
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")  # آدرس رایگان سرور Render
+RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
-# تنظیم کلید API جمینی
+# تنظیمات جمینی
 genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
@@ -39,20 +38,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     port = int(os.environ.get("PORT", 8080))
+    
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    # اگر آدرس Render وجود داشت از Webhook استفاده کن تا ارور Conflict کلاً حذف شود
     if RENDER_EXTERNAL_URL:
-        print(f"Starting bot with Webhook on port {port}...")
+        # اجرای استاندارد وب‌هوک بدون asyncio و بدون ارور Conflict
+        print(f"Starting bot on port {port} via Webhook...")
         app.run_webhook(
             listen="0.0.0.0",
             port=port,
             url_path=BOT_TOKEN,
-            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
+            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}",
+            drop_pending_updates=True
         )
     else:
-        print("Starting bot with Polling...")
+        print("Starting bot via Polling...")
         app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
