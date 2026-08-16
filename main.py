@@ -4,25 +4,19 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-from openai import OpenAI
+from google import genai
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
-MODEL_NAME = os.environ.get("MODEL_NAME", "openrouter/free")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_KEY,
-)
+# راه اندازی کلاینت جدید جمینی
+client = genai.Client(api_key=GEMINI_KEY)
 
-# پرامپت سیستمی برای تنظیم لحن، صمیمیت و افزایش خلاقیت
 SYSTEM_PROMPT = (
-    "تو یک دستیار صمیمی، رفیق، فوق‌العاده باهوش و بسیار خوش‌برخورد هستی. "
-    "همیشه به زبان فارسی کاملاً روان، صمیمی، دوستانه و جذاب صحبت کن. "
+    "تو یک دستیار هوشمند، بسیار باهوش، رفیق و صمیمی هستی. "
+    "همیشه به زبان فارسی روان، اصیل، جذاب و طبیعی صحبت کن. "
     "اصلاً از لحن خشک، اداری یا ترجمه‌های کتابی و ماشینی استفاده نکن. "
-    "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉. "
-    "در پاسخ به سوالات، کاملاً آزادانه، مبتکرانه و بدون گارد بی‌مورد یا محدودیت‌های سخت‌گیرانه کمک کن "
-    "و تفکر خلاقانه و بی‌پروا داشته باش."
+    "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,15 +24,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     user_text = update.message.text
     try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_text}
-            ],
-            temperature=0.9,  # افزایش درجه خلاقیت و تنوع پاسخ‌ها
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_text,
+            config={
+                "system_instruction": SYSTEM_PROMPT,
+                "temperature": 0.7,
+            }
         )
-        reply = response.choices[0].message.content
+        reply = response.text
         await update.message.reply_text(reply)
     except Exception as e:
         await update.message.reply_text(f"خطا در دریافت پاسخ: {str(e)}")
@@ -61,7 +55,7 @@ async def main():
     async with app:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
-        print(f"Friendly Bot is running using model: {MODEL_NAME}")
+        print("Gemini Bot is running perfectly...")
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
