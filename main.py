@@ -1,14 +1,14 @@
 import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-import google.generativeai as genai
+from google import genai
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
-# تنظیمات جمینی
-genai.configure(api_key=GEMINI_KEY)
+# ساخت کلاینت جدید گوگل جمینی
+client = genai.Client(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = (
     "تو یک دستیار هوشمند، بسیار باهوش، رفیق و صمیمی هستی. "
@@ -17,20 +17,19 @@ SYSTEM_PROMPT = (
     "توی صحبت‌هات خیلی راحت، گرم و انرژی‌بخش باش و از ایموجی‌های مناسب استفاده کن 😊😉."
 )
 
-# استفاده از مدل پایدار و رسمی gemini-1.5-flash
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=SYSTEM_PROMPT
-)
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
     user_text = update.message.text
     try:
-        response = model.generate_content(
-            user_text,
-            generation_config={"temperature": 0.7}
+        # استفاده از مدل رسمی و پیش‌فرض کلاینت جدید
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_text,
+            config={
+                "system_instruction": SYSTEM_PROMPT,
+                "temperature": 0.7,
+            }
         )
         reply = response.text
         await update.message.reply_text(reply)
