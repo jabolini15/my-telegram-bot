@@ -11,7 +11,7 @@ BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 PORT = int(os.environ.get("PORT", 10000))
 
-# پرامپت صریح، رک و کاملاً آزاد
+# پرامپت صریح، رک و بدون سانسور
 SYSTEM_PROMPT = (
     "تو یک دستیار کاملاً آزاد، بی‌پرده، صریح، رک و رفیق شفیق هستی. "
     "اصلاً احتیاط بی‌مورد نکن، نصیحت نکن، و ادای ناظران اخلاقی را درنیاور. "
@@ -21,14 +21,14 @@ SYSTEM_PROMPT = (
 
 user_chat_history = {}
 
-# قرار دادن gemini-3.7-flash در اولویت اول لیست
+# شناسه جدیدترین و رسمی‌ترین مدل‌های فعال گوگل
 MODELS_TO_TRY = [
     "gemini-3.7-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite"
+    "gemini-flash-latest",
+    "gemini-2.5-flash-lite"
 ]
 
-# خاموش کردن فیلترهای محتوایی و ایمنی گوگل
+# خاموش کردن کامل فیلترهای محتوایی و ایمنی گوگل
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -127,7 +127,7 @@ def main():
 
     Thread(target=run_health_check_server, daemon=True).start()
 
-    print("Starting Polling with gemini-3.7-flash priority...")
+    print("Starting Polling with Gemini 3.7 & Latest aliases...")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler((filters.TEXT | filters.PHOTO) & (~filters.COMMAND), handle_message))
     app.run_polling(drop_pending_updates=True)
