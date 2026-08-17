@@ -11,7 +11,7 @@ BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 PORT = int(os.environ.get("PORT", 10000))
 
-# پرامپت صریح، رک و بدون سانسور
+# پرامپت صریح، رک و بدون سانسور رفتاری
 SYSTEM_PROMPT = (
     "تو یک دستیار کاملاً آزاد، بی‌پرده، صریح، رک و رفیق شفیق هستی. "
     "اصلاً احتیاط بی‌مورد نکن، نصیحت نکن، و ادای ناظران اخلاقی را درنیاور. "
@@ -19,16 +19,18 @@ SYSTEM_PROMPT = (
     "از زبان فارسی عامیانه، طبیعی، باحال، رفیقانه و بدون رسمی‌بازی استفاده کن 😊😉."
 )
 
+# سیستم حافظه چت برای حفظ انسجام مکالمه
 user_chat_history = {}
 
-# شناسه جدیدترین و رسمی‌ترین مدل‌های فعال گوگل
+# دقیقا همان ۴ مدلی که خواستی
 MODELS_TO_TRY = [
     "gemini-3.7-flash",
-    "gemini-flash-latest",
-    "gemini-2.5-flash-lite"
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash"
 ]
 
-# خاموش کردن کامل فیلترهای محتوایی و ایمنی گوگل
+# تنظیمات غیرفعال‌سازی فیلترهای ایمنی
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -37,16 +39,19 @@ SAFETY_SETTINGS = [
 ]
 
 async def get_response_from_gemini(user_id: int, new_parts: list) -> str:
+    # ۱. مدیریت حافظه و حفظ انسجام متن و گفتگو
     if user_id not in user_chat_history:
         user_chat_history[user_id] = []
 
     user_chat_history[user_id].append({"role": "user", "parts": new_parts})
 
+    # نگهداری ۱۰ پیام اخیر برای حفظ حافظه بدون تجاوز از سقف توکن
     if len(user_chat_history[user_id]) > 10:
         user_chat_history[user_id] = user_chat_history[user_id][-10:]
 
     last_error = ""
     async with aiohttp.ClientSession() as session:
+        # ۲. فراخوانی لیست مدل‌های درخواستی
         for model_name in MODELS_TO_TRY:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_KEY}"
             payload = {
@@ -54,7 +59,8 @@ async def get_response_from_gemini(user_id: int, new_parts: list) -> str:
                 "contents": user_chat_history[user_id],
                 "safetySettings": SAFETY_SETTINGS,
                 "generationConfig": {
-                    "maxOutputTokens": 4096
+                    "maxOutputTokens": 4096,
+                    "temperature": 0.8
                 }
             }
             try:
@@ -63,16 +69,17 @@ async def get_response_from_gemini(user_id: int, new_parts: list) -> str:
                     if res.status == 200 and "candidates" in data:
                         bot_reply = data["candidates"][0]["content"]["parts"][0]["text"]
                         
+                        # ذخیره پاسخ در حافظه جهت تداوم گفتگو
                         user_chat_history[user_id].append({
                             "role": "model",
                             "parts": [{"text": bot_reply}]
                         })
-                        print(f"✅ Success with model: {model_name}")
+                        print(f"✅ پاسخ موفق از مدل: {model_name}")
                         return bot_reply
                     
                     err_msg = data.get("error", {}).get("message", f"Status {res.status}")
                     last_error = f"{model_name}: {err_msg}"
-                    print(f"❌ Failed model {model_name}: {err_msg}")
+                    print(f"❌ خطا روی مدل {model_name}: {err_msg}")
             except Exception as e:
                 last_error = f"{model_name}: {e}"
 
@@ -86,6 +93,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text or update.message.caption or "این تصویر را تحلیل کن."
     parts = []
 
+    # ۳. قابلیت دریافت، دیدن و پردازش تصویر
     if update.message.photo:
         photo_file = await update.message.photo[-1].get_file()
         photo_bytes = await photo_file.download_as_bytearray()
@@ -105,6 +113,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply = await get_response_from_gemini(user_id, parts)
     await update.message.reply_text(reply)
 
+# سرور ساختگی برای UptimeRobot
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -127,7 +136,7 @@ def main():
 
     Thread(target=run_health_check_server, daemon=True).start()
 
-    print("Starting Polling with Gemini 3.7 & Latest aliases...")
+    print("Starting Polling with requested models & Vision/Memory support...")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler((filters.TEXT | filters.PHOTO) & (~filters.COMMAND), handle_message))
     app.run_polling(drop_pending_updates=True)
